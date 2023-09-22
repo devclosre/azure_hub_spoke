@@ -199,7 +199,7 @@ resource "azurerm_virtual_network_peering" "prod_hub" {
 } 
 
 
-/*
+### Create a NIC
 resource "azurerm_network_interface" "my-nic" {
   name                = "mynic"
   location            = azurerm_resource_group.rg-hub.location
@@ -207,11 +207,38 @@ resource "azurerm_network_interface" "my-nic" {
 
   ip_configuration {
     name                          = "internal"
-    subnet_id                     = "${azurerm_subnet.gateway-subnet.id}"
+    subnet_id                     = "${azurerm_subnet.GatewaySubnet.id}"
     private_ip_address_allocation = "Dynamic"
-    public_ip_address_id          = azurerm_public_ip.pip.id
+    #public_ip_address_id          = azurerm_public_ip.pip.id
 
   }
-} */
+} 
 
 
+resource "azurerm_linux_virtual_machine" "vm-dev" {
+  name                = "VPG-${var.client}-${var.department}-${var.env}-AE-01"
+  resource_group_name = azurerm_resource_group.rg-dev
+  location            = var.target_region
+  size                = "Standard_F2"
+  admin_username      = "adminuser"
+  network_interface_ids = [
+    azurerm_network_interface.my-nic.id,
+  ]
+
+  admin_ssh_key {
+    username   = "adminuser"
+    public_key = file("~/.ssh/id_rsa.pub")
+  }
+
+  os_disk {
+    caching              = "ReadWrite"
+    storage_account_type = "Standard_LRS"
+  }
+
+  source_image_reference {
+    publisher = "Canonical"
+    offer     = "0001-com-ubuntu-server-focal"
+    sku       = "20_04-lts"
+    version   = "latest"
+  }
+}
